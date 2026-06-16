@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+.env
+data/docs/
+data/corpus/
+data/chunks.json
+data/embeddings.npy
+data/embeddings_meta.json
+app/evals/eval_results.json
+.DS_Store
