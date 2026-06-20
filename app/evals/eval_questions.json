@@ -1,92 +1,37 @@
 [
-  {
-    "id": 1,
-    "question": "What is dependency injection in FastAPI?",
-    "expected_answer_keywords": ["dependencies", "inject", "path operation", "declare"],
-    "expected_sources": ["tutorial/dependencies/index.md"]
-  },
-  {
-    "id": 2,
-    "question": "How do you create a path operation with GET method in FastAPI?",
-    "expected_answer_keywords": ["@app.get", "decorator", "path operation function"],
-    "expected_sources": ["tutorial/first-steps.md"]
-  },
-  {
-    "id": 3,
-    "question": "What is the difference between async def and def in FastAPI?",
-    "expected_answer_keywords": ["async", "await", "concurrency", "def"],
-    "expected_sources": ["async.md"]
-  },
-  {
-    "id": 4,
-    "question": "How do you declare request body in FastAPI?",
-    "expected_answer_keywords": ["BaseModel", "Pydantic", "request body", "POST"],
-    "expected_sources": ["tutorial/body.md"]
-  },
-  {
-    "id": 5,
-    "question": "How do you add query parameters in FastAPI?",
-    "expected_answer_keywords": ["query", "parameter", "function", "default"],
-    "expected_sources": ["tutorial/query-params.md"]
-  },
-  {
-    "id": 6,
-    "question": "What is a path parameter in FastAPI?",
-    "expected_answer_keywords": ["path", "parameter", "curly braces", "type"],
-    "expected_sources": ["tutorial/path-params.md"]
-  },
-  {
-    "id": 7,
-    "question": "How does FastAPI handle data validation?",
-    "expected_answer_keywords": ["Pydantic", "validation", "type hints", "error"],
-    "expected_sources": ["tutorial/body.md"]
-  },
-  {
-    "id": 8,
-    "question": "How do you return a response model in FastAPI?",
-    "expected_answer_keywords": ["response_model", "output", "BaseModel", "return"],
-    "expected_sources": ["tutorial/response-model.md"]
-  },
-  {
-    "id": 9,
-    "question": "How do you handle errors in FastAPI?",
-    "expected_answer_keywords": ["HTTPException", "status_code", "detail", "raise"],
-    "expected_sources": ["tutorial/handling-errors.md"]
-  },
-  {
-    "id": 10,
-    "question": "How do you add authentication in FastAPI?",
-    "expected_answer_keywords": ["security", "OAuth2", "token", "password"],
-    "expected_sources": ["tutorial/security/index.md"]
-  },
-  {
-    "id": 11,
-    "question": "What is Pydantic and why does FastAPI use it?",
-    "expected_answer_keywords": ["Pydantic", "validation", "type hints", "model"],
-    "expected_sources": ["tutorial/body.md"]
-  },
-  {
-    "id": 12,
-    "question": "How do you deploy FastAPI with Docker?",
-    "expected_answer_keywords": ["Docker", "Dockerfile", "container", "image"],
-    "expected_sources": ["deployment/docker.md"]
-  },
-  {
-    "id": 13,
-    "question": "How do you add middleware in FastAPI?",
-    "expected_answer_keywords": ["middleware", "request", "response", "add_middleware"],
-    "expected_sources": ["tutorial/middleware.md"]
-  },
-  {
-    "id": 14,
-    "question": "How do you use background tasks in FastAPI?",
-    "expected_answer_keywords": ["BackgroundTasks", "add_task", "background", "after"],
-    "expected_sources": ["tutorial/background-tasks.md"]
-  },
-  {
-    "id": 15,
-    "question": "How do you upload files in FastAPI?",
-    "expected_answer_keywords": ["UploadFile", "File", "upload", "multipart"],
-    "expected_sources": ["tutorial/request-files.md"]
-  }
+  {"id": 1, "question": "What is dependency injection in FastAPI?", "expected_answer_keywords": ["dependencies", "inject", "path operation", "declare"], "expected_sources": ["tutorial/dependencies/index.md"]},
+  {"id": 2, "question": "How do you create a path operation with GET method in FastAPI?", "expected_answer_keywords": ["@app.get", "decorator", "path operation function"], "expected_sources": ["tutorial/first-steps.md"]},
+  {"id": 3, "question": "What is the difference between async def and def in FastAPI?", "expected_answer_keywords": ["async", "await", "concurrency", "def"], "expected_sources": ["async.md"]},
+  {"id": 4, "question": "How do you declare request body in FastAPI?", "expected_answer_keywords": ["BaseModel", "Pydantic", "request body", "POST"], "expected_sources": ["tutorial/body.md"]},
+  {"id": 5, "question": "How do you add query parameters in FastAPI?", "expected_answer_keywords": ["query", "parameter", "function", "default"], "expected_sources": ["tutorial/query-params.md"]},
+  {"id": 6, "question": "What is a path parameter in FastAPI?", "expected_answer_keywords": ["path", "parameter", "curly braces", "type"], "expected_sources": ["tutorial/path-params.md"]},
+  {"id": 7, "question": "How does FastAPI handle data validation?", "expected_answer_keywords": ["Pydantic", "validation", "type hints", "error"], "expected_sources": ["tutorial/body.md"]},
+  {"id": 8, "question": "How do you return a response model in FastAPI?", "expected_answer_keywords": ["response_model", "output", "BaseModel", "return"], "expected_sources": ["tutorial/response-model.md"]},
+  {"id": 9, "question": "How do you handle errors in FastAPI?", "expected_answer_keywords": ["HTTPException", "status_code", "detail", "raise"], "expected_sources": ["tutorial/handling-errors.md"]},
+  {"id": 10, "question": "How do you add authentication in FastAPI?", "expected_answer_keywords": ["security", "OAuth2", "token", "password"], "expected_sources": ["tutorial/security/index.md"]},
+  {"id": 11, "question": "What is Pydantic and why does FastAPI use it?", "expected_answer_keywords": ["Pydantic", "validation", "type hints", "model"], "expected_sources": ["tutorial/body.md"]},
+  {"id": 12, "question": "How do you deploy FastAPI with Docker?", "expected_answer_keywords": ["Docker", "Dockerfile", "container", "image"], "expected_sources": ["deployment/docker.md"]},
+  {"id": 13, "question": "How do you add middleware in FastAPI?", "expected_answer_keywords": ["middleware", "request", "response", "add_middleware"], "expected_sources": ["tutorial/middleware.md"]},
+  {"id": 14, "question": "How do you use background tasks in FastAPI?", "expected_answer_keywords": ["BackgroundTasks", "add_task", "background", "after"], "expected_sources": ["tutorial/background-tasks.md"]},
+  {"id": 15, "question": "How do you upload files in FastAPI?", "expected_answer_keywords": ["UploadFile", "File", "upload", "multipart"], "expected_sources": ["tutorial/request-files.md"]},
+  {"id": 16, "question": "How do you test a FastAPI application?", "expected_answer_keywords": ["TestClient", "pytest", "test", "client"], "expected_sources": ["tutorial/testing.md"]},
+  {"id": 17, "question": "How do you set up CORS in FastAPI?", "expected_answer_keywords": ["CORS", "origins", "middleware", "CORSMiddleware"], "expected_sources": ["tutorial/cors.md"]},
+  {"id": 18, "question": "How do you use cookie parameters in FastAPI?", "expected_answer_keywords": ["cookie", "parameter", "Cookie", "default"], "expected_sources": ["tutorial/cookie-params.md"]},
+  {"id": 19, "question": "How do you use header parameters in FastAPI?", "expected_answer_keywords": ["header", "parameter", "Header", "default"], "expected_sources": ["tutorial/header-params.md"]},
+  {"id": 20, "question": "How do you organize a bigger FastAPI application with multiple files?", "expected_answer_keywords": ["APIRouter", "router", "include_router", "module"], "expected_sources": ["tutorial/bigger-applications.md"]},
+  {"id": 21, "question": "How do you set response status codes in FastAPI?", "expected_answer_keywords": ["status_code", "response", "HTTP", "decorator"], "expected_sources": ["tutorial/response-status-code.md"]},
+  {"id": 22, "question": "How do you add metadata like title and description to FastAPI?", "expected_answer_keywords": ["title", "description", "metadata", "FastAPI("], "expected_sources": ["tutorial/metadata.md"]},
+  {"id": 23, "question": "How do you handle nested models in request bodies?", "expected_answer_keywords": ["nested", "model", "BaseModel", "list"], "expected_sources": ["tutorial/body-nested-models.md"]},
+  {"id": 24, "question": "How do you validate string query parameters with constraints?", "expected_answer_keywords": ["Query", "max_length", "min_length", "regex"], "expected_sources": ["tutorial/query-params-str-validations.md"]},
+  {"id": 25, "question": "How do you debug a FastAPI application?", "expected_answer_keywords": ["debug", "uvicorn", "breakpoint", "IDE"], "expected_sources": ["tutorial/debugging.md"]},
+  {"id": 26, "question": "How do you use sub-dependencies in FastAPI?", "expected_answer_keywords": ["sub-dependency", "dependency", "nested", "Depends"], "expected_sources": ["tutorial/dependencies/sub-dependencies.md"]},
+  {"id": 27, "question": "How do you use classes as dependencies in FastAPI?", "expected_answer_keywords": ["class", "dependency", "Depends", "callable"], "expected_sources": ["tutorial/dependencies/classes-as-dependencies.md"]},
+  {"id": 28, "question": "How do you use global dependencies in FastAPI?", "expected_answer_keywords": ["global", "dependencies", "app", "dependencies="], "expected_sources": ["tutorial/dependencies/global-dependencies.md"]},
+  {"id": 29, "question": "How do you customize OpenAPI docs configuration?", "expected_answer_keywords": ["OpenAPI", "docs", "swagger", "configure"], "expected_sources": ["how-to/configure-swagger-ui.md"]},
+  {"id": 30, "question": "How do you handle conditional OpenAPI schema generation?", "expected_answer_keywords": ["conditional", "OpenAPI", "environment", "disable"], "expected_sources": ["how-to/conditional-openapi.md"]},
+  {"id": 31, "question": "What are advanced ways to customize responses in FastAPI?", "expected_answer_keywords": ["response", "custom", "Response", "class"], "expected_sources": ["advanced/custom-response.md"]},
+  {"id": 32, "question": "How do you use WebSockets in FastAPI?", "expected_answer_keywords": ["WebSocket", "websocket", "connection", "accept"], "expected_sources": ["advanced/websockets.md"]},
+  {"id": 33, "question": "How do you add additional status codes to a path operation?", "expected_answer_keywords": ["status", "code", "additional", "JSONResponse"], "expected_sources": ["advanced/additional-status-codes.md"]},
+  {"id": 34, "question": "How do you use settings and environment variables in FastAPI?", "expected_answer_keywords": ["settings", "environment", "BaseSettings", "config"], "expected_sources": ["advanced/settings.md"]},
+  {"id": 35, "question": "How do you add advanced security scopes with OAuth2?", "expected_answer_keywords": ["scopes", "OAuth2", "security", "permission"], "expected_sources": ["advanced/security/oauth2-scopes.md"]}
 ]

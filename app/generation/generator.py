@@ -1,4 +1,8 @@
 import ollama
+import os
+
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+client = ollama.Client(host=OLLAMA_HOST)
 
 
 SYSTEM_PROMPT = """You are a helpful assistant that answers questions about FastAPI documentation.
@@ -24,8 +28,8 @@ Question: {query}
 
 Answer using the context above. Use keywords from the context directly in your answer:"""
 
-    response = ollama.chat(
-        model="phi3",
+    response = client.chat(
+        model="qwen2.5:1.5b",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
