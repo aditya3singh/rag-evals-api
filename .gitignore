@@ -9,3 +9,5 @@ data/embeddings.npy
 data/embeddings_meta.json
 app/evals/eval_results.json
 .DS_Store
+cookies.txt
+data/temp-langchain/
