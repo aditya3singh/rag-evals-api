@@ -4,8 +4,7 @@ from pathlib import Path
 SOURCE_DIR = Path("data/docs")
 TARGET_DIR = Path("data/corpus")
 
-# Folders/files to include
-INCLUDE_DIRS = ["tutorial"]
+INCLUDE_DIRS = ["tutorial", "advanced", "how-to"]
 INCLUDE_FILES = [
     "index.md",
     "async.md",
@@ -15,7 +14,6 @@ INCLUDE_FILES = [
     "virtual-environments.md",
 ]
 
-# Minimum word count to keep a file (filters out stub/index pages)
 MIN_WORDS = 50
 
 

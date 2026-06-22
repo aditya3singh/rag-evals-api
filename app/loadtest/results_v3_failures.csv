@@ -1,0 +1,3 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+GET,/health,"ConnectionResetError(54, 'Connection reset by peer')",14,2026-06-20T07:31:59Z,2026-06-20T07:32:04Z
+POST,/ask,"ConnectionResetError(54, 'Connection reset by peer')",6,2026-06-20T07:31:59Z,2026-06-20T07:32:03Z

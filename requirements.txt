@@ -9,3 +9,5 @@ ollama
 cachetools
 requests
 numpy
+bcrypt
+redis
