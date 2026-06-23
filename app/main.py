@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from app.retrieval.retriever import retrieve
-from app.generation.generator import generate, client as ollama_client
+from app.generation.generator import generate
 from app.retrieval.cache import get_cached, set_cached
 from app.auth.auth import create_user, login_user, get_current_user, logout_user
 from app.storage.db_schema import create_tables
@@ -69,10 +69,11 @@ def require_user(session_id: Optional[str]):
 @app.get("/health")
 def health():
     try:
-        ollama_client.list()
-        return {"status": "ok", "ollama": "ready"}
+        conn = get_db()
+        conn.close()
+        return {"status": "ok", "db": "connected"}
     except Exception as e:
-        return JSONResponse(status_code=503, content={"status": "degraded", "ollama": str(e)})
+        return JSONResponse(status_code=503, content={"status": "degraded", "error": str(e)})
 
 
 # ── Frontend ─────────────────────────────────────────────

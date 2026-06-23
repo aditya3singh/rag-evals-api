@@ -1,10 +1,9 @@
-import ollama
+from groq import Groq
 import os
 
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:1.5b")
-client = ollama.Client(host=OLLAMA_HOST)
-
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+client = Groq(api_key=GROQ_API_KEY)
 
 SYSTEM_PROMPT = """You are a helpful assistant that answers questions about FastAPI documentation.
 
@@ -29,15 +28,15 @@ Question: {query}
 
 Answer using the context above. Use keywords from the context directly in your answer:"""
 
-    response = client.chat(
-        model=OLLAMA_MODEL,
+    response = client.chat.completions.create(
+        model=GROQ_MODEL,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
         ]
     )
 
-    answer = response.message.content
+    answer = response.choices[0].message.content
 
     citations = []
     for i, chunk in enumerate(chunks):
