@@ -2,124 +2,279 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>RAG Evals API — Ask FastAPI Docs</title>
+<title>RAG Evals API</title>
 <style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    max-width: 720px;
-    margin: 60px auto;
-    padding: 0 20px;
-    background: #fafafa;
-    color: #1a1a1a;
-  }
-  h1 { font-size: 22px; margin-bottom: 4px; }
-  p.sub { color: #666; margin-top: 0; margin-bottom: 28px; }
-  .input-row { display: flex; gap: 8px; margin-bottom: 24px; }
-  input {
-    flex: 1;
-    padding: 12px 14px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 14px;
-  }
-  button {
-    padding: 12px 20px;
-    border: none;
-    border-radius: 8px;
-    background: #1a1a1a;
-    color: white;
-    font-size: 14px;
-    cursor: pointer;
-  }
-  button:disabled { opacity: 0.5; cursor: not-allowed; }
-  .answer-box {
-    background: white;
-    border: 1px solid #eee;
-    border-radius: 10px;
-    padding: 20px;
-    display: none;
-  }
-  .answer-box.visible { display: block; }
-  .answer-text { line-height: 1.6; margin-bottom: 16px; }
-  .meta { font-size: 12px; color: #888; margin-bottom: 12px; }
-  .citation {
-    font-size: 12px;
-    background: #f5f5f5;
-    border-radius: 6px;
-    padding: 8px 10px;
-    margin-bottom: 6px;
-  }
-  .citation .src { font-weight: 600; }
-  .loading { color: #888; font-size: 14px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f5; color: #1a1a1a; height: 100vh; display: flex; }
+
+  /* Auth screen */
+  #auth-screen { display: flex; align-items: center; justify-content: center; width: 100%; }
+  .auth-box { background: white; border-radius: 12px; padding: 2rem; width: 360px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+  .auth-box h1 { font-size: 20px; margin-bottom: 4px; }
+  .auth-box p { color: #666; font-size: 13px; margin-bottom: 1.5rem; }
+  .auth-tabs { display: flex; gap: 8px; margin-bottom: 1.5rem; }
+  .auth-tab { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px; background: white; cursor: pointer; font-size: 13px; }
+  .auth-tab.active { background: #1a1a1a; color: white; border-color: #1a1a1a; }
+  input[type=email], input[type=password], input[type=text] { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 10px; }
+  .btn { width: 100%; padding: 10px; background: #1a1a1a; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
+  .btn:hover { background: #333; }
+  .btn-sm { width: auto; padding: 6px 12px; font-size: 12px; }
+  .btn-outline { background: white; color: #1a1a1a; border: 1px solid #ddd; }
+  .btn-outline:hover { background: #f5f5f5; }
+  .error { color: #e53e3e; font-size: 12px; margin-top: 8px; }
+
+  /* Main app */
+  #app-screen { display: none; width: 100%; }
+  .sidebar { width: 260px; background: white; border-right: 1px solid #eee; display: flex; flex-direction: column; height: 100vh; }
+  .sidebar-header { padding: 1rem; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+  .sidebar-header h2 { font-size: 14px; font-weight: 600; }
+  .new-chat-btn { background: #1a1a1a; color: white; border: none; border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
+  .conv-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .conv-item { padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; color: #444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+  .conv-item:hover { background: #f5f5f5; }
+  .conv-item.active { background: #f0f0f0; font-weight: 500; }
+  .sidebar-footer { padding: 12px; border-top: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+  .user-email { font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+
+  /* Chat area */
+  .chat-area { flex: 1; display: flex; flex-direction: column; height: 100vh; }
+  .chat-header { padding: 1rem 1.5rem; border-bottom: 1px solid #eee; background: white; display: flex; align-items: center; justify-content: space-between; }
+  .chat-header h1 { font-size: 16px; font-weight: 600; }
+  .messages { flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 16px; }
+  .msg { max-width: 720px; width: 100%; }
+  .msg.user .bubble { background: #1a1a1a; color: white; border-radius: 12px 12px 4px 12px; padding: 10px 14px; font-size: 14px; display: inline-block; }
+  .msg.user { display: flex; justify-content: flex-end; }
+  .msg.assistant .bubble { background: white; border: 1px solid #eee; border-radius: 12px 12px 12px 4px; padding: 12px 16px; font-size: 14px; line-height: 1.6; }
+  .citations { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .citation-tag { font-size: 11px; background: #f0f0f0; padding: 2px 8px; border-radius: 20px; color: #555; }
+  .meta { font-size: 11px; color: #aaa; margin-top: 6px; }
+
+  /* Input area */
+  .input-area { padding: 1rem 1.5rem; background: white; border-top: 1px solid #eee; }
+  .input-row { display: flex; gap: 8px; }
+  .input-row input { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+  .input-row button { padding: 10px 20px; background: #1a1a1a; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
+  .input-row button:disabled { opacity: 0.5; }
+  .thinking { color: #888; font-size: 13px; padding: 8px 0; }
 </style>
 </head>
 <body>
 
-<h1>RAG Evals API</h1>
-<p class="sub">Ask anything about FastAPI documentation</p>
-
-<div class="input-row">
-  <input id="query" type="text" placeholder="e.g. How does dependency injection work?" />
-  <button id="askBtn" onclick="ask()">Ask</button>
+<!-- Auth Screen -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <h1>RAG Evals API</h1>
+    <p>Ask anything about FastAPI documentation</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="showTab('login')">Login</button>
+      <button class="auth-tab" onclick="showTab('signup')">Sign up</button>
+    </div>
+    <div id="login-form">
+      <input type="email" id="login-email" placeholder="Email" />
+      <input type="password" id="login-password" placeholder="Password" />
+      <button class="btn" onclick="doLogin()">Login</button>
+    </div>
+    <div id="signup-form" style="display:none">
+      <input type="email" id="signup-email" placeholder="Email" />
+      <input type="password" id="signup-password" placeholder="Password (min 6 chars)" />
+      <button class="btn" onclick="doSignup()">Create account</button>
+    </div>
+    <div id="auth-error" class="error"></div>
+  </div>
 </div>
 
-<div id="loading" class="loading" style="display:none;">Thinking...</div>
-
-<div id="answerBox" class="answer-box">
-  <div class="answer-text" id="answerText"></div>
-  <div class="meta" id="meta"></div>
-  <div id="citations"></div>
+<!-- Main App -->
+<div id="app-screen">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>Conversations</h2>
+      <button class="new-chat-btn" onclick="newConversation()">+ New</button>
+    </div>
+    <div class="conv-list" id="conv-list"></div>
+    <div class="sidebar-footer">
+      <span class="user-email" id="user-email"></span>
+      <button class="btn btn-outline btn-sm" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+  <div class="chat-area">
+    <div class="chat-header">
+      <h1 id="chat-title">RAG Evals API</h1>
+      <button class="btn btn-outline btn-sm" onclick="exportConversation()">⬇ Export</button>
+    </div>
+    <div class="messages" id="messages">
+      <div style="color:#aaa; font-size:13px; text-align:center; margin-top:2rem;">Ask anything about FastAPI documentation</div>
+    </div>
+    <div class="input-area">
+      <div class="input-row">
+        <input type="text" id="query" placeholder="Ask a question..." onkeypress="if(event.key==='Enter') ask()" />
+        <button id="ask-btn" onclick="ask()">Ask</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
+let currentUser = null;
+let currentConvId = null;
+let conversations = [];
+
+// ── Auth ──────────────────────────────────────────────
+function showTab(tab) {
+  document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('signup-form').style.display = tab === 'signup' ? 'block' : 'none';
+  document.querySelectorAll('.auth-tab').forEach((t, i) => t.classList.toggle('active', (i === 0) === (tab === 'login')));
+  document.getElementById('auth-error').textContent = '';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const res = await fetch('/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email, password}) });
+  const data = await res.json();
+  if (!res.ok) { document.getElementById('auth-error').textContent = data.detail; return; }
+  currentUser = {email: data.email};
+  showApp();
+}
+
+async function doSignup() {
+  const email = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
+  const res = await fetch('/auth/signup', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email, password}) });
+  const data = await res.json();
+  if (!res.ok) { document.getElementById('auth-error').textContent = data.detail; return; }
+  document.getElementById('login-email').value = email;
+  document.getElementById('login-password').value = password;
+  showTab('login');
+  document.getElementById('auth-error').style.color = 'green';
+  document.getElementById('auth-error').textContent = 'Account created! Logging in...';
+  setTimeout(doLogin, 800);
+}
+
+async function doLogout() {
+  await fetch('/auth/logout', {method: 'POST'});
+  currentUser = null; currentConvId = null;
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display = 'none';
+}
+
+// ── App ───────────────────────────────────────────────
+async function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'flex';
+  document.getElementById('user-email').textContent = currentUser.email;
+  await loadConversations();
+  if (conversations.length === 0) await newConversation();
+  else selectConversation(conversations[0].id, conversations[0].title);
+}
+
+async function loadConversations() {
+  const res = await fetch('/conversations');
+  if (!res.ok) return;
+  conversations = await res.json();
+  renderConvList();
+}
+
+function renderConvList() {
+  const el = document.getElementById('conv-list');
+  el.innerHTML = conversations.map(c =>
+    `<div class="conv-item ${c.id === currentConvId ? 'active' : ''}" onclick="selectConversation(${c.id}, '${c.title.replace(/'/g, "\\'")}')">
+      ${c.title || 'New conversation'}
+    </div>`
+  ).join('');
+}
+
+async function newConversation() {
+  const res = await fetch('/conversations', {method: 'POST'});
+  const conv = await res.json();
+  conversations.unshift(conv);
+  selectConversation(conv.id, conv.title);
+  renderConvList();
+}
+
+async function selectConversation(id, title) {
+  currentConvId = id;
+  document.getElementById('chat-title').textContent = title || 'New conversation';
+  renderConvList();
+  const res = await fetch(`/conversations/${id}/messages`);
+  const messages = await res.json();
+  const el = document.getElementById('messages');
+  if (messages.length === 0) {
+    el.innerHTML = '<div style="color:#aaa; font-size:13px; text-align:center; margin-top:2rem;">Ask anything about FastAPI documentation</div>';
+    return;
+  }
+  el.innerHTML = '';
+  for (let i = 0; i < messages.length; i += 2) {
+    if (messages[i]) appendMessage('user', messages[i].content, null, null);
+    if (messages[i+1]) appendMessage('assistant', messages[i+1].content, messages[i+1].citations, null);
+  }
+}
+
+// ── Chat ──────────────────────────────────────────────
+function appendMessage(role, content, citations, meta) {
+  const el = document.getElementById('messages');
+  const placeholder = el.querySelector('[style*="color:#aaa"]');
+  if (placeholder) placeholder.remove();
+
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  let html = `<div class="bubble">${content}</div>`;
+  if (citations && citations.length > 0) {
+    html += `<div class="citations">${citations.map(c => `<span class="citation-tag">${c.ref} ${c.source}</span>`).join('')}</div>`;
+  }
+  if (meta) html += `<div class="meta">${meta}</div>`;
+  div.innerHTML = html;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
 async function ask() {
-  const query = document.getElementById('query').value.trim();
-  if (!query) return;
+  const input = document.getElementById('query');
+  const query = input.value.trim();
+  if (!query || !currentConvId) return;
 
-  const btn = document.getElementById('askBtn');
-  const loading = document.getElementById('loading');
-  const box = document.getElementById('answerBox');
+  input.value = '';
+  document.getElementById('ask-btn').disabled = true;
+  appendMessage('user', query, null, null);
 
-  btn.disabled = true;
-  loading.style.display = 'block';
-  box.classList.remove('visible');
+  const thinking = document.createElement('div');
+  thinking.className = 'thinking';
+  thinking.textContent = 'Thinking...';
+  document.getElementById('messages').appendChild(thinking);
 
   try {
     const res = await fetch('/ask', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, top_k: 5 })
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({query, top_k: 5, conversation_id: currentConvId})
     });
     const data = await res.json();
+    thinking.remove();
+    appendMessage('assistant', data.answer, data.citations, `${data.latency_ms}ms · cache: ${data.cache_hit} · ${data.retrieval_status}`);
 
-    document.getElementById('answerText').textContent = data.answer;
-    document.getElementById('meta').textContent =
-      `${data.latency_ms}ms · cache: ${data.cache_hit} · status: ${data.retrieval_status}`;
-
-    const citEl = document.getElementById('citations');
-    citEl.innerHTML = '';
-    (data.citations || []).forEach(c => {
-      const div = document.createElement('div');
-      div.className = 'citation';
-      div.innerHTML = `<span class="src">${c.ref} ${c.source}</span> — similarity ${c.similarity}`;
-      citEl.appendChild(div);
-    });
-
-    box.classList.add('visible');
-  } catch (err) {
-    document.getElementById('answerText').textContent = 'Error: could not reach the API.';
-    box.classList.add('visible');
+    // Update conversation title in sidebar
+    await loadConversations();
+  } catch(e) {
+    thinking.remove();
+    appendMessage('assistant', 'Error: could not reach the API.', null, null);
   } finally {
-    btn.disabled = false;
-    loading.style.display = 'none';
+    document.getElementById('ask-btn').disabled = false;
   }
 }
 
-document.getElementById('query').addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') ask();
-});
-</script>
+function exportConversation() {
+  if (!currentConvId) return;
+  window.open(`/conversations/${currentConvId}/export`, '_blank');
+}
 
+// Check if already logged in on page load
+(async () => {
+  const res = await fetch('/auth/me');
+  if (res.ok) {
+    currentUser = await res.json();
+    showApp();
+  }
+})();
+</script>
 </body>
 </html>
