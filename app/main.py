@@ -1,11 +1,13 @@
 from fastapi import FastAPI, HTTPException, Cookie, Response
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from app.retrieval.retriever import retrieve
 from app.generation.generator import generate, client as ollama_client
 from app.retrieval.cache import get_cached, set_cached
 from app.auth.auth import create_user, login_user, get_current_user, logout_user
+from app.storage.db_schema import create_tables
 import psycopg2
 import os
 import time
@@ -17,8 +19,26 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 app = FastAPI(title="RAG Evals API")
 
+# ── CORS ─────────────────────────────────────────────────
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# ── Models ──────────────────────────────────────────
+
+# ── Startup: ensure DB tables exist ──────────────────────
+@app.on_event("startup")
+def on_startup():
+    try:
+        create_tables()
+    except Exception as e:
+        print(f"Warning: could not create tables on startup: {e}")
+
+
+# ── Models ──────────────────────────────────────────────
 class QueryRequest(BaseModel):
     query: str
     top_k: int = 5
@@ -30,7 +50,22 @@ class AuthRequest(BaseModel):
     password: str
 
 
-# ── Health ──────────────────────────────────────────
+# ── Helper ───────────────────────────────────────────────
+def get_db():
+    return psycopg2.connect(DATABASE_URL)
+
+
+def require_user(session_id: Optional[str]):
+    """Return the current user or raise 401."""
+    if not session_id:
+        raise HTTPException(status_code=401, detail="Not logged in")
+    user = get_current_user(session_id)
+    if not user:
+        raise HTTPException(status_code=401, detail="Session expired")
+    return user
+
+
+# ── Health ──────────────────────────────────────────────
 @app.get("/health")
 def health():
     try:
@@ -40,13 +75,13 @@ def health():
         return JSONResponse(status_code=503, content={"status": "degraded", "ollama": str(e)})
 
 
-# ── Frontend ─────────────────────────────────────────
+# ── Frontend ─────────────────────────────────────────────
 @app.get("/")
 def serve_frontend():
     return FileResponse("app/static/index.html")
 
 
-# ── Auth endpoints ────────────────────────────────────
+# ── Auth endpoints ────────────────────────────────────────
 @app.post("/auth/signup")
 def signup(req: AuthRequest, response: Response):
     try:
@@ -89,55 +124,67 @@ def me(session_id: Optional[str] = Cookie(None)):
     return user
 
 
-# ── Conversation endpoints ────────────────────────────
+# ── Conversation endpoints ────────────────────────────────
 @app.post("/conversations")
 def create_conversation(session_id: Optional[str] = Cookie(None)):
-    user = get_current_user(session_id) if session_id else None
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO conversations (user_id, title) VALUES (%s, %s) RETURNING id, title, created_at",
-        (user["id"] if user else None, "New conversation")
-    )
-    conv = cur.fetchone()
-    conn.commit()
-    cur.close()
-    conn.close()
+    user = require_user(session_id)
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO conversations (user_id, title) VALUES (%s, %s) RETURNING id, title, created_at",
+            (user["id"], "New conversation")
+        )
+        conv = cur.fetchone()
+        conn.commit()
+        cur.close()
+    finally:
+        conn.close()
     return {"id": conv[0], "title": conv[1], "created_at": str(conv[2])}
 
 
 @app.get("/conversations")
 def list_conversations(session_id: Optional[str] = Cookie(None)):
-    user = get_current_user(session_id) if session_id else None
-    if not user:
-        raise HTTPException(status_code=401, detail="Not logged in")
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT id, title, created_at, updated_at FROM conversations WHERE user_id = %s ORDER BY updated_at DESC",
-        (user["id"],)
-    )
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
+    user = require_user(session_id)
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, title, created_at, updated_at FROM conversations WHERE user_id = %s ORDER BY updated_at DESC",
+            (user["id"],)
+        )
+        rows = cur.fetchall()
+        cur.close()
+    finally:
+        conn.close()
     return [{"id": r[0], "title": r[1], "created_at": str(r[2]), "updated_at": str(r[3])} for r in rows]
 
 
 @app.get("/conversations/{conversation_id}/messages")
 def get_messages(conversation_id: int, session_id: Optional[str] = Cookie(None)):
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT id, role, content, citations, created_at FROM messages WHERE conversation_id = %s ORDER BY created_at ASC",
-        (conversation_id,)
-    )
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
+    user = require_user(session_id)
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        # Verify the conversation belongs to this user
+        cur.execute(
+            "SELECT id FROM conversations WHERE id = %s AND user_id = %s",
+            (conversation_id, user["id"])
+        )
+        if not cur.fetchone():
+            raise HTTPException(status_code=403, detail="Access denied")
+        cur.execute(
+            "SELECT id, role, content, citations, created_at FROM messages WHERE conversation_id = %s ORDER BY created_at ASC",
+            (conversation_id,)
+        )
+        rows = cur.fetchall()
+        cur.close()
+    finally:
+        conn.close()
     return [{"id": r[0], "role": r[1], "content": r[2], "citations": r[3], "created_at": str(r[4])} for r in rows]
 
 
-# ── RAG endpoints ─────────────────────────────────────
+# ── RAG endpoints ─────────────────────────────────────────
 @app.post("/retrieve")
 def retrieve_chunks(request: QueryRequest):
     results = retrieve(request.query, request.top_k)
@@ -189,23 +236,25 @@ def ask(request: QueryRequest, session_id: Optional[str] = Cookie(None)):
     # Save to conversation history if conversation_id provided
     if request.conversation_id:
         try:
-            conn = psycopg2.connect(DATABASE_URL)
-            cur = conn.cursor()
-            cur.execute(
-                "INSERT INTO messages (conversation_id, role, content, citations) VALUES (%s, %s, %s, %s)",
-                (request.conversation_id, "user", request.query, None)
-            )
-            cur.execute(
-                "INSERT INTO messages (conversation_id, role, content, citations) VALUES (%s, %s, %s, %s)",
-                (request.conversation_id, "assistant", result["answer"], json.dumps(result["citations"]))
-            )
-            cur.execute(
-                "UPDATE conversations SET updated_at = NOW(), title = %s WHERE id = %s AND title = 'New conversation'",
-                (request.query[:50], request.conversation_id)
-            )
-            conn.commit()
-            cur.close()
-            conn.close()
+            conn = get_db()
+            try:
+                cur = conn.cursor()
+                cur.execute(
+                    "INSERT INTO messages (conversation_id, role, content, citations) VALUES (%s, %s, %s, %s)",
+                    (request.conversation_id, "user", request.query, None)
+                )
+                cur.execute(
+                    "INSERT INTO messages (conversation_id, role, content, citations) VALUES (%s, %s, %s, %s)",
+                    (request.conversation_id, "assistant", result["answer"], json.dumps(result["citations"]))
+                )
+                cur.execute(
+                    "UPDATE conversations SET updated_at = NOW(), title = %s WHERE id = %s AND title = 'New conversation'",
+                    (request.query[:50], request.conversation_id)
+                )
+                conn.commit()
+                cur.close()
+            finally:
+                conn.close()
         except Exception as e:
             print(f"Failed to save message: {e}")
 
@@ -213,18 +262,28 @@ def ask(request: QueryRequest, session_id: Optional[str] = Cookie(None)):
     return response
 
 
-# ── Export endpoint ───────────────────────────────────
+# ── Export endpoint ───────────────────────────────────────
 @app.get("/conversations/{conversation_id}/export")
-def export_conversation(conversation_id: int):
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT role, content, citations, created_at FROM messages WHERE conversation_id = %s ORDER BY created_at ASC",
-        (conversation_id,)
-    )
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
+def export_conversation(conversation_id: int, session_id: Optional[str] = Cookie(None)):
+    user = require_user(session_id)
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        # Verify the conversation belongs to this user
+        cur.execute(
+            "SELECT id FROM conversations WHERE id = %s AND user_id = %s",
+            (conversation_id, user["id"])
+        )
+        if not cur.fetchone():
+            raise HTTPException(status_code=403, detail="Access denied")
+        cur.execute(
+            "SELECT role, content, citations, created_at FROM messages WHERE conversation_id = %s ORDER BY created_at ASC",
+            (conversation_id,)
+        )
+        rows = cur.fetchall()
+        cur.close()
+    finally:
+        conn.close()
 
     text = f"Conversation #{conversation_id}\n{'='*40}\n\n"
     for row in rows:

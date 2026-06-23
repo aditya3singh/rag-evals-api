@@ -1,13 +1,47 @@
-venv/
+# Byte-compiled / optimized / DLL files
 __pycache__/
+*.py[cod]
+*$py.class
 *.pyc
+
+# Environment
+venv/
 .env
+.env.local
+.env.production
+
+# Data files (large files, not needed in repo)
 data/docs/
 data/corpus/
 data/chunks.json
 data/embeddings.npy
 data/embeddings_meta.json
-app/evals/eval_results.json
-.DS_Store
-cookies.txt
 data/temp-langchain/
+data/docs-langchain/
+
+# Dev-only directories (removed from repo)
+app/evals/
+app/loadtest/
+app/ingestion/
+
+# OS files
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+cookies.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/

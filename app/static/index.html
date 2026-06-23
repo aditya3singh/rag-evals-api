@@ -2,166 +2,566 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="RAG Evals API — Ask questions about FastAPI documentation">
 <title>RAG Evals API</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- marked.js for markdown rendering -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f5; color: #1a1a1a; height: 100vh; display: flex; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* Auth screen */
-  #auth-screen { display: flex; align-items: center; justify-content: center; width: 100%; }
-  .auth-box { background: white; border-radius: 12px; padding: 2rem; width: 360px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
-  .auth-box h1 { font-size: 20px; margin-bottom: 4px; }
-  .auth-box p { color: #666; font-size: 13px; margin-bottom: 1.5rem; }
-  .auth-tabs { display: flex; gap: 8px; margin-bottom: 1.5rem; }
-  .auth-tab { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 8px; background: white; cursor: pointer; font-size: 13px; }
-  .auth-tab.active { background: #1a1a1a; color: white; border-color: #1a1a1a; }
-  input[type=email], input[type=password], input[type=text] { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 10px; }
-  .btn { width: 100%; padding: 10px; background: #1a1a1a; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
-  .btn:hover { background: #333; }
-  .btn-sm { width: auto; padding: 6px 12px; font-size: 12px; }
-  .btn-outline { background: white; color: #1a1a1a; border: 1px solid #ddd; }
-  .btn-outline:hover { background: #f5f5f5; }
-  .error { color: #e53e3e; font-size: 12px; margin-top: 8px; }
+  :root {
+    --bg:          #f7f8fa;
+    --sidebar-bg:  #1a1b1e;
+    --sidebar-txt: #c9cdd4;
+    --sidebar-sub: #6b7280;
+    --sidebar-hover: rgba(255,255,255,0.07);
+    --sidebar-active: rgba(255,255,255,0.13);
+    --accent:      #6366f1;
+    --accent-dark: #4f46e5;
+    --surface:     #ffffff;
+    --border:      #e5e7eb;
+    --text-primary:#111827;
+    --text-muted:  #6b7280;
+    --user-bubble: #6366f1;
+    --code-bg:     #1e1e2e;
+    --code-txt:    #cdd6f4;
+    --tag-bg:      #ede9fe;
+    --tag-txt:     #5b21b6;
+    --radius:      12px;
+    --shadow-sm:   0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md:   0 4px 16px rgba(0,0,0,0.10);
+  }
 
-  /* Main app */
-  #app-screen { display: none; width: 100%; }
-  .sidebar { width: 260px; background: white; border-right: 1px solid #eee; display: flex; flex-direction: column; height: 100vh; }
-  .sidebar-header { padding: 1rem; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
-  .sidebar-header h2 { font-size: 14px; font-weight: 600; }
-  .new-chat-btn { background: #1a1a1a; color: white; border: none; border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
-  .conv-list { flex: 1; overflow-y: auto; padding: 8px; }
-  .conv-item { padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; color: #444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
-  .conv-item:hover { background: #f5f5f5; }
-  .conv-item.active { background: #f0f0f0; font-weight: 500; }
-  .sidebar-footer { padding: 12px; border-top: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
-  .user-email { font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+  html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text-primary); }
 
-  /* Chat area */
-  .chat-area { flex: 1; display: flex; flex-direction: column; height: 100vh; }
-  .chat-header { padding: 1rem 1.5rem; border-bottom: 1px solid #eee; background: white; display: flex; align-items: center; justify-content: space-between; }
-  .chat-header h1 { font-size: 16px; font-weight: 600; }
-  .messages { flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 16px; }
-  .msg { max-width: 720px; width: 100%; }
-  .msg.user .bubble { background: #1a1a1a; color: white; border-radius: 12px 12px 4px 12px; padding: 10px 14px; font-size: 14px; display: inline-block; }
-  .msg.user { display: flex; justify-content: flex-end; }
-  .msg.assistant .bubble { background: white; border: 1px solid #eee; border-radius: 12px 12px 12px 4px; padding: 12px 16px; font-size: 14px; line-height: 1.6; }
-  .citations { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
-  .citation-tag { font-size: 11px; background: #f0f0f0; padding: 2px 8px; border-radius: 20px; color: #555; }
-  .meta { font-size: 11px; color: #aaa; margin-top: 6px; }
+  /* ── AUTH SCREEN ─────────────────────────────────── */
+  #auth-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: var(--bg);
+  }
+  .auth-card {
+    background: var(--surface); border-radius: 20px;
+    padding: 2.5rem; width: 380px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border);
+  }
+  .auth-logo {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 1.75rem;
+  }
+  .auth-logo-icon {
+    width: 40px; height: 40px; background: var(--accent);
+    border-radius: 10px; display: flex; align-items: center;
+    justify-content: center; font-size: 20px;
+  }
+  .auth-logo h1 { font-size: 18px; font-weight: 600; }
+  .auth-logo p  { font-size: 12px; color: var(--text-muted); }
 
-  /* Input area */
-  .input-area { padding: 1rem 1.5rem; background: white; border-top: 1px solid #eee; }
-  .input-row { display: flex; gap: 8px; }
-  .input-row input { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
-  .input-row button { padding: 10px 20px; background: #1a1a1a; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; }
-  .input-row button:disabled { opacity: 0.5; }
-  .thinking { color: #888; font-size: 13px; padding: 8px 0; }
+  .auth-tabs {
+    display: flex; gap: 4px; background: var(--bg);
+    padding: 4px; border-radius: 10px; margin-bottom: 1.5rem;
+  }
+  .auth-tab {
+    flex: 1; padding: 8px; border: none; border-radius: 7px;
+    background: transparent; cursor: pointer; font-size: 13px;
+    font-family: inherit; font-weight: 500; color: var(--text-muted);
+    transition: all .15s;
+  }
+  .auth-tab.active {
+    background: var(--surface); color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .form-group { margin-bottom: 12px; }
+  .form-group label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; }
+  .form-group input {
+    width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+    border-radius: 9px; font-size: 14px; font-family: inherit;
+    background: var(--bg); transition: border-color .15s, box-shadow .15s;
+    outline: none;
+  }
+  .form-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+
+  .btn-primary {
+    width: 100%; padding: 11px; background: var(--accent); color: white;
+    border: none; border-radius: 9px; font-size: 14px; font-weight: 600;
+    font-family: inherit; cursor: pointer; transition: background .15s, transform .1s;
+    margin-top: 4px;
+  }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-primary:active { transform: scale(0.99); }
+  .auth-msg { font-size: 12px; margin-top: 10px; min-height: 16px; text-align: center; }
+  .auth-msg.error  { color: #ef4444; }
+  .auth-msg.success{ color: #10b981; }
+
+  /* ── MAIN APP LAYOUT ─────────────────────────────── */
+  #app-screen { display: none; height: 100vh; }
+  .layout { display: flex; height: 100%; }
+
+  /* ── SIDEBAR ─────────────────────────────────────── */
+  .sidebar {
+    width: 260px; min-width: 260px;
+    background: var(--sidebar-bg); display: flex;
+    flex-direction: column; height: 100%;
+    overflow: hidden;
+  }
+  .sidebar-top {
+    padding: 1.25rem 1rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .sidebar-brand {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 1rem;
+  }
+  .sidebar-brand-icon {
+    width: 32px; height: 32px; background: var(--accent);
+    border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; font-size: 16px; flex-shrink: 0;
+  }
+  .sidebar-brand-name {
+    font-size: 14px; font-weight: 600; color: #fff;
+  }
+  .btn-new-chat {
+    width: 100%; padding: 9px 12px; background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 9px;
+    color: #fff; font-size: 13px; font-weight: 500; font-family: inherit;
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    transition: background .15s;
+  }
+  .btn-new-chat:hover { background: rgba(255,255,255,0.14); }
+
+  .sidebar-section-label {
+    font-size: 10px; font-weight: 600; letter-spacing: .08em;
+    color: var(--sidebar-sub); text-transform: uppercase;
+    padding: 0.75rem 1rem 0.4rem;
+  }
+  .conv-list { flex: 1; overflow-y: auto; padding: 0 0.5rem; }
+  .conv-list::-webkit-scrollbar { width: 4px; }
+  .conv-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+  .conv-item {
+    padding: 9px 10px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; color: var(--sidebar-txt);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-bottom: 1px; transition: background .15s; display: flex;
+    align-items: center; gap: 8px;
+  }
+  .conv-item:hover  { background: var(--sidebar-hover); }
+  .conv-item.active { background: var(--sidebar-active); color: #fff; }
+  .conv-item-icon { font-size: 14px; flex-shrink: 0; }
+
+  .sidebar-footer {
+    padding: 0.85rem 1rem;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .user-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--accent); display: flex; align-items: center;
+    justify-content: center; font-size: 13px; font-weight: 600; color: white;
+    flex-shrink: 0;
+  }
+  .user-info { flex: 1; min-width: 0; }
+  .user-email-text { font-size: 12px; color: var(--sidebar-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .btn-logout {
+    background: none; border: none; color: var(--sidebar-sub);
+    cursor: pointer; font-size: 16px; padding: 4px;
+    border-radius: 6px; transition: color .15s;
+    flex-shrink: 0;
+  }
+  .btn-logout:hover { color: #fff; }
+
+  /* ── CHAT AREA ───────────────────────────────────── */
+  .chat-area { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+
+  .chat-header {
+    padding: 1rem 1.5rem; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .chat-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+  .btn-export {
+    padding: 7px 14px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; font-size: 12px; font-weight: 500; font-family: inherit;
+    cursor: pointer; color: var(--text-muted); transition: all .15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-export:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── MESSAGES ────────────────────────────────────── */
+  .messages-wrap {
+    flex: 1; overflow-y: auto; padding: 2rem 1.5rem;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0;
+  }
+  .messages-wrap::-webkit-scrollbar { width: 5px; }
+  .messages-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .messages-inner { width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 24px; }
+
+  /* Empty state */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; text-align: center;
+    padding: 4rem 1rem; gap: 12px; color: var(--text-muted);
+    width: 100%; max-width: 720px; margin: auto;
+  }
+  .empty-state-icon { font-size: 48px; margin-bottom: 8px; }
+  .empty-state h2 { font-size: 20px; font-weight: 600; color: var(--text-primary); }
+  .empty-state p { font-size: 14px; max-width: 380px; line-height: 1.6; }
+  .suggestion-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+  .chip {
+    padding: 8px 14px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; font-size: 12px; color: var(--text-primary);
+    cursor: pointer; transition: all .15s; font-family: inherit;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); background: #ede9fe; }
+
+  /* Message rows */
+  .msg-row { display: flex; flex-direction: column; width: 100%; }
+  .msg-row.user  { align-items: flex-end; }
+  .msg-row.assistant { align-items: flex-start; }
+
+  /* User bubble */
+  .bubble-user {
+    background: var(--user-bubble); color: white;
+    padding: 11px 16px; border-radius: 18px 18px 4px 18px;
+    font-size: 14px; line-height: 1.55; max-width: 80%;
+    word-break: break-word;
+  }
+
+  /* Assistant bubble */
+  .bubble-assistant {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px 18px 18px 18px;
+    padding: 16px 20px; font-size: 14px; line-height: 1.7;
+    box-shadow: var(--shadow-sm); max-width: 100%; width: 100%;
+    word-break: break-word;
+  }
+
+  /* Markdown rendering inside assistant bubble */
+  .bubble-assistant p { margin-bottom: 0.75em; }
+  .bubble-assistant p:last-child { margin-bottom: 0; }
+  .bubble-assistant h1,.bubble-assistant h2,.bubble-assistant h3 {
+    font-weight: 600; margin: 1em 0 0.4em;
+  }
+  .bubble-assistant ul,.bubble-assistant ol { padding-left: 1.4em; margin-bottom: 0.75em; }
+  .bubble-assistant li { margin-bottom: 0.3em; }
+  .bubble-assistant code:not(pre code) {
+    font-family: 'JetBrains Mono', monospace; font-size: 12.5px;
+    background: #f1f0ff; color: #5b21b6;
+    padding: 2px 6px; border-radius: 5px;
+  }
+  .bubble-assistant pre {
+    background: var(--code-bg); border-radius: 10px;
+    padding: 14px 16px; overflow-x: auto; margin: 10px 0;
+  }
+  .bubble-assistant pre code {
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    color: var(--code-txt); background: none; padding: 0;
+  }
+  .bubble-assistant strong { font-weight: 600; }
+  .bubble-assistant blockquote {
+    border-left: 3px solid var(--accent); padding-left: 12px;
+    color: var(--text-muted); margin: 8px 0;
+  }
+
+  /* Citations */
+  .citations-row {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px;
+    padding-top: 12px; border-top: 1px solid var(--border);
+  }
+  .citation-chip {
+    display: flex; align-items: center; gap: 5px;
+    background: var(--tag-bg); color: var(--tag-txt);
+    font-size: 11px; font-weight: 500;
+    padding: 4px 10px; border-radius: 20px;
+  }
+  .citation-chip-ref { font-weight: 700; }
+
+  /* Meta row */
+  .msg-meta {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 6px; padding: 0 4px;
+  }
+  .meta-badge {
+    font-size: 11px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .meta-dot { color: var(--border); }
+  .badge-cache-hit {
+    background: #d1fae5; color: #065f46;
+    font-size: 10px; font-weight: 600;
+    padding: 1px 7px; border-radius: 20px;
+  }
+
+  /* Thinking indicator */
+  .thinking-row { display: flex; align-items: flex-start; gap: 10px; width: 100%; }
+  .thinking-bubble {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px 18px 18px 18px;
+    padding: 14px 18px; font-size: 13px;
+    color: var(--text-muted); display: flex; align-items: center; gap: 10px;
+    box-shadow: var(--shadow-sm);
+  }
+  .dots span {
+    display: inline-block; width: 6px; height: 6px;
+    background: var(--accent); border-radius: 50%; margin: 0 2px;
+    animation: bounce 1.2s infinite ease-in-out;
+  }
+  .dots span:nth-child(2) { animation-delay: .2s; }
+  .dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: .6; }
+    40%            { transform: translateY(-6px); opacity: 1; }
+  }
+
+  /* ── INPUT AREA ──────────────────────────────────── */
+  .input-area {
+    padding: 1rem 1.5rem 1.25rem;
+    background: var(--surface); border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .input-inner { max-width: 720px; margin: 0 auto; }
+  .input-box {
+    display: flex; align-items: flex-end; gap: 10px;
+    background: var(--bg); border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 10px 10px 10px 16px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .input-box:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+  }
+  #query {
+    flex: 1; border: none; background: transparent; outline: none;
+    font-size: 14px; font-family: inherit; color: var(--text-primary);
+    resize: none; max-height: 120px; line-height: 1.5; min-height: 22px;
+    padding: 2px 0;
+  }
+  #query::placeholder { color: var(--text-muted); }
+  .btn-send {
+    width: 38px; height: 38px; background: var(--accent); color: white;
+    border: none; border-radius: 10px; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; transition: background .15s, transform .1s;
+  }
+  .btn-send:hover:not(:disabled) { background: var(--accent-dark); }
+  .btn-send:active:not(:disabled) { transform: scale(0.93); }
+  .btn-send:disabled { opacity: 0.4; cursor: default; }
+  .input-hint { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 8px; }
+
+  /* ── RESPONSIVE ──────────────────────────────────── */
+  @media (max-width: 680px) {
+    .sidebar { width: 220px; min-width: 220px; }
+  }
+  @media (max-width: 520px) {
+    .sidebar { display: none; }
+    .messages-wrap { padding: 1rem; }
+    .input-area { padding: 0.75rem 1rem; }
+    .bubble-user { max-width: 92%; }
+  }
 </style>
 </head>
 <body>
 
-<!-- Auth Screen -->
+<!-- ── AUTH SCREEN ─────────────────────────────────── -->
 <div id="auth-screen">
-  <div class="auth-box">
-    <h1>RAG Evals API</h1>
-    <p>Ask anything about FastAPI documentation</p>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🧠</div>
+      <div>
+        <div class="auth-logo h1" style="font-size:16px;font-weight:600;">RAG Evals API</div>
+        <div style="font-size:12px;color:var(--text-muted);">FastAPI documentation assistant</div>
+      </div>
+    </div>
+
     <div class="auth-tabs">
-      <button class="auth-tab active" onclick="showTab('login')">Login</button>
-      <button class="auth-tab" onclick="showTab('signup')">Sign up</button>
+      <button class="auth-tab active" id="tab-login" onclick="showTab('login')">Login</button>
+      <button class="auth-tab" id="tab-signup" onclick="showTab('signup')">Sign up</button>
     </div>
+
     <div id="login-form">
-      <input type="email" id="login-email" placeholder="Email" />
-      <input type="password" id="login-password" placeholder="Password" />
-      <button class="btn" onclick="doLogin()">Login</button>
+      <div class="form-group">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn-primary" id="login-btn" onclick="doLogin()">Login</button>
     </div>
+
     <div id="signup-form" style="display:none">
-      <input type="email" id="signup-email" placeholder="Email" />
-      <input type="password" id="signup-password" placeholder="Password (min 6 chars)" />
-      <button class="btn" onclick="doSignup()">Create account</button>
+      <div class="form-group">
+        <label for="signup-email">Email</label>
+        <input type="email" id="signup-email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doSignup()">
+      </div>
+      <div class="form-group">
+        <label for="signup-password">Password</label>
+        <input type="password" id="signup-password" placeholder="Min. 6 characters" onkeydown="if(event.key==='Enter')doSignup()">
+      </div>
+      <button class="btn-primary" id="signup-btn" onclick="doSignup()">Create account</button>
     </div>
-    <div id="auth-error" class="error"></div>
+
+    <div id="auth-msg" class="auth-msg"></div>
   </div>
 </div>
 
-<!-- Main App -->
+<!-- ── MAIN APP ────────────────────────────────────── -->
 <div id="app-screen">
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <h2>Conversations</h2>
-      <button class="new-chat-btn" onclick="newConversation()">+ New</button>
-    </div>
-    <div class="conv-list" id="conv-list"></div>
-    <div class="sidebar-footer">
-      <span class="user-email" id="user-email"></span>
-      <button class="btn btn-outline btn-sm" onclick="doLogout()">Logout</button>
-    </div>
-  </div>
-  <div class="chat-area">
-    <div class="chat-header">
-      <h1 id="chat-title">RAG Evals API</h1>
-      <button class="btn btn-outline btn-sm" onclick="exportConversation()">⬇ Export</button>
-    </div>
-    <div class="messages" id="messages">
-      <div style="color:#aaa; font-size:13px; text-align:center; margin-top:2rem;">Ask anything about FastAPI documentation</div>
-    </div>
-    <div class="input-area">
-      <div class="input-row">
-        <input type="text" id="query" placeholder="Ask a question..." onkeypress="if(event.key==='Enter') ask()" />
-        <button id="ask-btn" onclick="ask()">Ask</button>
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-icon">🧠</div>
+          <div class="sidebar-brand-name">RAG Evals</div>
+        </div>
+        <button class="btn-new-chat" onclick="newConversation()">
+          <span>✚</span> New conversation
+        </button>
       </div>
-    </div>
+
+      <div class="sidebar-section-label">Recent</div>
+      <div class="conv-list" id="conv-list"></div>
+
+      <div class="sidebar-footer">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info">
+          <div class="user-email-text" id="user-email"></div>
+        </div>
+        <button class="btn-logout" onclick="doLogout()" title="Logout">↩</button>
+      </div>
+    </aside>
+
+    <!-- Chat -->
+    <main class="chat-area">
+      <div class="chat-header">
+        <div class="chat-title" id="chat-title">New conversation</div>
+        <button class="btn-export" onclick="exportConversation()">⬇ Export</button>
+      </div>
+
+      <div class="messages-wrap" id="messages-wrap">
+        <div class="messages-inner" id="messages-inner">
+          <div class="empty-state" id="empty-state">
+            <div class="empty-state-icon">💬</div>
+            <h2>Ask anything about FastAPI</h2>
+            <p>Get instant answers sourced directly from the official FastAPI documentation.</p>
+            <div class="suggestion-chips">
+              <button class="chip" onclick="fillQuery('What is dependency injection in FastAPI?')">Dependency injection</button>
+              <button class="chip" onclick="fillQuery('How do you deploy FastAPI with Docker?')">Docker deployment</button>
+              <button class="chip" onclick="fillQuery('How do you add authentication in FastAPI?')">Authentication</button>
+              <button class="chip" onclick="fillQuery('How does FastAPI handle data validation?')">Data validation</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <div class="input-inner">
+          <div class="input-box">
+            <textarea id="query" rows="1" placeholder="Ask a question about FastAPI..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+            <button class="btn-send" id="ask-btn" onclick="ask()" title="Send">
+              ↑
+            </button>
+          </div>
+          <div class="input-hint">Press Enter to send · Shift+Enter for new line</div>
+        </div>
+      </div>
+    </main>
+
   </div>
 </div>
 
 <script>
+// ── Configure marked ────────────────────────────────
+marked.setOptions({ breaks: true, gfm: true });
+
 let currentUser = null;
 let currentConvId = null;
 let conversations = [];
 
-// ── Auth ──────────────────────────────────────────────
+// ── Helpers ─────────────────────────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); }
+}
+
+function fillQuery(text) {
+  const el = document.getElementById('query');
+  el.value = text;
+  autoResize(el);
+  el.focus();
+}
+
+function setAuthMsg(msg, type='error') {
+  const el = document.getElementById('auth-msg');
+  el.textContent = msg;
+  el.className = 'auth-msg ' + type;
+}
+
+// ── Auth ─────────────────────────────────────────────
 function showTab(tab) {
-  document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('login-form').style.display  = tab === 'login'  ? 'block' : 'none';
   document.getElementById('signup-form').style.display = tab === 'signup' ? 'block' : 'none';
-  document.querySelectorAll('.auth-tab').forEach((t, i) => t.classList.toggle('active', (i === 0) === (tab === 'login')));
-  document.getElementById('auth-error').textContent = '';
+  document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+  setAuthMsg('');
 }
 
 async function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
+  const email    = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
-  const res = await fetch('/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email, password}) });
+  if (!email || !password) { setAuthMsg('Please fill in all fields.'); return; }
+  document.getElementById('login-btn').textContent = 'Logging in…';
+  const res  = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password}) });
   const data = await res.json();
-  if (!res.ok) { document.getElementById('auth-error').textContent = data.detail; return; }
-  currentUser = {email: data.email};
+  document.getElementById('login-btn').textContent = 'Login';
+  if (!res.ok) { setAuthMsg(data.detail || 'Login failed.'); return; }
+  currentUser = { email: data.email };
   showApp();
 }
 
 async function doSignup() {
-  const email = document.getElementById('signup-email').value.trim();
+  const email    = document.getElementById('signup-email').value.trim();
   const password = document.getElementById('signup-password').value;
-  const res = await fetch('/auth/signup', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email, password}) });
+  if (!email || !password) { setAuthMsg('Please fill in all fields.'); return; }
+  if (password.length < 6) { setAuthMsg('Password must be at least 6 characters.'); return; }
+  document.getElementById('signup-btn').textContent = 'Creating account…';
+  const res  = await fetch('/auth/signup', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password}) });
   const data = await res.json();
-  if (!res.ok) { document.getElementById('auth-error').textContent = data.detail; return; }
-  document.getElementById('login-email').value = email;
+  document.getElementById('signup-btn').textContent = 'Create account';
+  if (!res.ok) { setAuthMsg(data.detail || 'Signup failed.'); return; }
+  document.getElementById('login-email').value    = email;
   document.getElementById('login-password').value = password;
   showTab('login');
-  document.getElementById('auth-error').style.color = 'green';
-  document.getElementById('auth-error').textContent = 'Account created! Logging in...';
-  setTimeout(doLogin, 800);
+  setAuthMsg('Account created! Logging in…', 'success');
+  setTimeout(doLogin, 700);
 }
 
 async function doLogout() {
-  await fetch('/auth/logout', {method: 'POST'});
+  await fetch('/auth/logout', { method:'POST' });
   currentUser = null; currentConvId = null;
+  document.getElementById('app-screen').style.display  = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
-  document.getElementById('app-screen').style.display = 'none';
 }
 
-// ── App ───────────────────────────────────────────────
+// ── App ──────────────────────────────────────────────
 async function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('app-screen').style.display = 'flex';
-  document.getElementById('user-email').textContent = currentUser.email;
+  document.getElementById('app-screen').style.display  = 'block';
+  document.getElementById('user-email').textContent    = currentUser.email;
+  document.getElementById('user-avatar').textContent   = currentUser.email[0].toUpperCase();
   await loadConversations();
   if (conversations.length === 0) await newConversation();
   else selectConversation(conversations[0].id, conversations[0].title);
@@ -177,14 +577,15 @@ async function loadConversations() {
 function renderConvList() {
   const el = document.getElementById('conv-list');
   el.innerHTML = conversations.map(c =>
-    `<div class="conv-item ${c.id === currentConvId ? 'active' : ''}" onclick="selectConversation(${c.id}, '${c.title.replace(/'/g, "\\'")}')">
-      ${c.title || 'New conversation'}
+    `<div class="conv-item ${c.id === currentConvId ? 'active' : ''}" onclick="selectConversation(${c.id}, ${JSON.stringify(c.title)})">
+      <span class="conv-item-icon">💬</span>
+      ${escHtml(c.title || 'New conversation')}
     </div>`
   ).join('');
 }
 
 async function newConversation() {
-  const res = await fetch('/conversations', {method: 'POST'});
+  const res  = await fetch('/conversations', { method:'POST' });
   const conv = await res.json();
   conversations.unshift(conv);
   selectConversation(conv.id, conv.title);
@@ -195,70 +596,138 @@ async function selectConversation(id, title) {
   currentConvId = id;
   document.getElementById('chat-title').textContent = title || 'New conversation';
   renderConvList();
+
   const res = await fetch(`/conversations/${id}/messages`);
   const messages = await res.json();
-  const el = document.getElementById('messages');
+  const inner = document.getElementById('messages-inner');
+
   if (messages.length === 0) {
-    el.innerHTML = '<div style="color:#aaa; font-size:13px; text-align:center; margin-top:2rem;">Ask anything about FastAPI documentation</div>';
+    showEmptyState();
     return;
   }
-  el.innerHTML = '';
+
+  inner.innerHTML = '';
   for (let i = 0; i < messages.length; i += 2) {
-    if (messages[i]) appendMessage('user', messages[i].content, null, null);
+    if (messages[i])   appendMessage('user',      messages[i].content,   null, null);
     if (messages[i+1]) appendMessage('assistant', messages[i+1].content, messages[i+1].citations, null);
   }
+  scrollBottom();
 }
 
-// ── Chat ──────────────────────────────────────────────
+// ── Empty state ──────────────────────────────────────
+function showEmptyState() {
+  const inner = document.getElementById('messages-inner');
+  inner.innerHTML = `
+    <div class="empty-state" id="empty-state">
+      <div class="empty-state-icon">💬</div>
+      <h2>Ask anything about FastAPI</h2>
+      <p>Get instant answers sourced directly from the official FastAPI documentation.</p>
+      <div class="suggestion-chips">
+        <button class="chip" onclick="fillQuery('What is dependency injection in FastAPI?')">Dependency injection</button>
+        <button class="chip" onclick="fillQuery('How do you deploy FastAPI with Docker?')">Docker deployment</button>
+        <button class="chip" onclick="fillQuery('How do you add authentication in FastAPI?')">Authentication</button>
+        <button class="chip" onclick="fillQuery('How does FastAPI handle data validation?')">Data validation</button>
+      </div>
+    </div>`;
+}
+
+// ── Messages ─────────────────────────────────────────
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function appendMessage(role, content, citations, meta) {
-  const el = document.getElementById('messages');
-  const placeholder = el.querySelector('[style*="color:#aaa"]');
-  if (placeholder) placeholder.remove();
+  const inner = document.getElementById('messages-inner');
+  const empty = inner.querySelector('.empty-state');
+  if (empty) empty.remove();
 
-  const div = document.createElement('div');
-  div.className = `msg ${role}`;
+  const row = document.createElement('div');
+  row.className = `msg-row ${role}`;
 
-  let html = `<div class="bubble">${content}</div>`;
-  if (citations && citations.length > 0) {
-    html += `<div class="citations">${citations.map(c => `<span class="citation-tag">${c.ref} ${c.source}</span>`).join('')}</div>`;
+  if (role === 'user') {
+    row.innerHTML = `<div class="bubble-user">${escHtml(content)}</div>`;
+  } else {
+    // Render markdown for assistant messages
+    const rendered = marked.parse(content || '');
+    let citationsHtml = '';
+    if (citations && citations.length > 0) {
+      citationsHtml = `<div class="citations-row">
+        ${citations.map(c => `
+          <span class="citation-chip">
+            <span class="citation-chip-ref">${escHtml(c.ref)}</span>
+            ${escHtml(c.source)}
+          </span>`).join('')}
+      </div>`;
+    }
+
+    let metaHtml = '';
+    if (meta) {
+      const { latency, cache_hit, status } = meta;
+      metaHtml = `<div class="msg-meta">
+        <span class="meta-badge">${latency}ms</span>
+        <span class="meta-dot">·</span>
+        <span class="meta-badge">${escHtml(status)}</span>
+        ${cache_hit ? '<span class="badge-cache-hit">⚡ cached</span>' : ''}
+      </div>`;
+    }
+
+    row.innerHTML = `
+      <div class="bubble-assistant">${rendered}${citationsHtml}</div>
+      ${metaHtml}`;
   }
-  if (meta) html += `<div class="meta">${meta}</div>`;
-  div.innerHTML = html;
-  el.appendChild(div);
-  el.scrollTop = el.scrollHeight;
+
+  inner.appendChild(row);
+  scrollBottom();
+  return row;
 }
 
+function scrollBottom() {
+  const wrap = document.getElementById('messages-wrap');
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+// ── Ask ──────────────────────────────────────────────
 async function ask() {
   const input = document.getElementById('query');
   const query = input.value.trim();
   if (!query || !currentConvId) return;
 
   input.value = '';
+  input.style.height = 'auto';
   document.getElementById('ask-btn').disabled = true;
   appendMessage('user', query, null, null);
 
-  const thinking = document.createElement('div');
-  thinking.className = 'thinking';
-  thinking.textContent = 'Thinking...';
-  document.getElementById('messages').appendChild(thinking);
+  // Thinking indicator
+  const inner = document.getElementById('messages-inner');
+  const thinkRow = document.createElement('div');
+  thinkRow.className = 'thinking-row';
+  thinkRow.innerHTML = `<div class="thinking-bubble">
+    <div class="dots"><span></span><span></span><span></span></div>
+    Thinking…
+  </div>`;
+  inner.appendChild(thinkRow);
+  scrollBottom();
 
   try {
-    const res = await fetch('/ask', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({query, top_k: 5, conversation_id: currentConvId})
+    const res  = await fetch('/ask', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ query, top_k: 5, conversation_id: currentConvId })
     });
     const data = await res.json();
-    thinking.remove();
-    appendMessage('assistant', data.answer, data.citations, `${data.latency_ms}ms · cache: ${data.cache_hit} · ${data.retrieval_status}`);
-
-    // Update conversation title in sidebar
+    thinkRow.remove();
+    appendMessage('assistant', data.answer, data.citations, {
+      latency:   data.latency_ms,
+      cache_hit: data.cache_hit,
+      status:    data.retrieval_status
+    });
     await loadConversations();
   } catch(e) {
-    thinking.remove();
-    appendMessage('assistant', 'Error: could not reach the API.', null, null);
+    thinkRow.remove();
+    appendMessage('assistant', 'Sorry, there was an error reaching the API. Please try again.', null, null);
   } finally {
     document.getElementById('ask-btn').disabled = false;
+    document.getElementById('query').focus();
   }
 }
 
@@ -267,7 +736,7 @@ function exportConversation() {
   window.open(`/conversations/${currentConvId}/export`, '_blank');
 }
 
-// Check if already logged in on page load
+// ── Auto-login check ─────────────────────────────────
 (async () => {
   const res = await fetch('/auth/me');
   if (res.ok) {

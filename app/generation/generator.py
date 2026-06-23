@@ -2,6 +2,7 @@ import ollama
 import os
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:1.5b")
 client = ollama.Client(host=OLLAMA_HOST)
 
 
@@ -29,14 +30,14 @@ Question: {query}
 Answer using the context above. Use keywords from the context directly in your answer:"""
 
     response = client.chat(
-        model="qwen2.5:1.5b",
+        model=OLLAMA_MODEL,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
         ]
     )
 
-    answer = response["message"]["content"]
+    answer = response.message.content
 
     citations = []
     for i, chunk in enumerate(chunks):

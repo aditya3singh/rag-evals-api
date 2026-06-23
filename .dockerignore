@@ -1,5 +1,38 @@
 venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 .env
+.env.*
 .git/
+.gitignore
+
+# Data files (loaded into DB during ingestion, not needed at runtime)
+data/docs/
+data/corpus/
+data/docs-langchain/
+data/temp-langchain/
+data/chunks.json
+data/embeddings.npy
+data/embeddings_meta.json
+
+# Dev / test artifacts
+app/evals/
+app/loadtest/
+app/ingestion/
+docs/
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Build artifacts
+dist/
+build/
+*.egg-info/

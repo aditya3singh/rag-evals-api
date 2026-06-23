@@ -11,7 +11,14 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 SESSION_TTL = 60 * 60 * 24
 
-redis_client = redis.from_url(REDIS_URL)
+try:
+    redis_client = redis.from_url(REDIS_URL)
+    redis_client.ping()
+except Exception as e:
+    raise RuntimeError(
+        f"Could not connect to Redis at {REDIS_URL}: {e}. "
+        "Make sure Redis is running (e.g. via docker compose up redis)."
+    ) from e
 
 
 def get_db():

@@ -7,36 +7,39 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-MODEL_NAME = "all-MiniLM-L6-v2"
-SIMILARITY_THRESHOLD = 0.45
+MODEL_NAME = "BAAI/bge-small-en-v1.5"
+SIMILARITY_THRESHOLD = 0.1
 
 model = SentenceTransformer(MODEL_NAME)
 
 
-def retrieve(query: str, top_k: int = 5):
+def retrieve(query: str, top_k: int = 7):
     query_embedding = model.encode([query], convert_to_numpy=True)[0]
+    embedding_list = query_embedding.tolist()
 
     conn = psycopg2.connect(DATABASE_URL)
     cur = conn.cursor()
 
-    cur.execute("""
-        SELECT id, source, chunk_index, text,
-               1 - (embedding <=> %s::vector) AS similarity
-        FROM chunks
-        WHERE 1 - (embedding <=> %s::vector) >= %s
-        ORDER BY embedding <=> %s::vector
-        LIMIT %s
-    """, (
-        query_embedding.tolist(),
-        query_embedding.tolist(),
-        SIMILARITY_THRESHOLD,
-        query_embedding.tolist(),
-        top_k
-    ))
+    try:
+        cur.execute("""
+            SELECT id, source, chunk_index, text,
+                   1 - (embedding <=> %s::vector) AS similarity
+            FROM chunks
+            WHERE 1 - (embedding <=> %s::vector) >= %s
+            ORDER BY embedding <=> %s::vector
+            LIMIT %s
+        """, (
+            embedding_list,
+            embedding_list,
+            SIMILARITY_THRESHOLD,
+            embedding_list,
+            top_k
+        ))
 
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
+        rows = cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
 
     results = []
     for row in rows:
