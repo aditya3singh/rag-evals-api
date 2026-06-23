@@ -11,12 +11,12 @@ client = Groq(api_key=GROQ_API_KEY)
 SYSTEM_PROMPT = """You are a helpful assistant that answers questions about FastAPI documentation.
 
 Rules:
-1. Answer ONLY using the context provided below.
-2. If the context contains partial information, use it to give the best possible answer.
-3. Only say "NOT_IN_CONTEXT" if the context has absolutely zero relevant information.
-4. Always mention keywords from the context in your answer.
-5. Be concise — 3-5 sentences maximum.
-6. Reference sources as [1], [2], [3] where applicable."""
+1. ALWAYS reference sources as [1], [2], [3] in your answer — this is mandatory.
+2. Answer ONLY using the context provided below.
+3. If the context contains partial information, use it to give the best possible answer.
+4. Only say "NOT_IN_CONTEXT" if the context has absolutely zero relevant information.
+5. Always mention keywords from the context in your answer.
+6. Be concise — 3-5 sentences maximum."""
 
 
 def generate(query: str, chunks: list) -> dict:
