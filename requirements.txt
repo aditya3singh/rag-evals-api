@@ -6,6 +6,7 @@ psycopg2-binary
 torch --index-url https://download.pytorch.org/whl/cpu
 sentence-transformers
 groq
+redis
 cachetools
 requests
 numpy
