@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Cookie, Response
+from fastapi import FastAPI, HTTPException, Cookie, Response, Depends, Header
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -55,7 +55,15 @@ def get_db():
     return psycopg2.connect(DATABASE_URL)
 
 
-def require_user(session_id: Optional[str]):
+def get_session_id(session_id: Optional[str] = Cookie(None), authorization: Optional[str] = Header(None)) -> Optional[str]:
+    if session_id:
+        return session_id
+    if authorization and authorization.startswith("Bearer "):
+        return authorization.split(" ")[1]
+    return None
+
+
+def require_user(session_id: Optional[str] = Depends(get_session_id)):
     """Return the current user or raise 401."""
     if not session_id:
         raise HTTPException(status_code=401, detail="Not logged in")
@@ -102,13 +110,13 @@ def login(req: AuthRequest, response: Response):
             httponly=True,
             max_age=86400
         )
-        return {"message": "Login successful", "email": result["email"]}
+        return {"message": "Login successful", "email": result["email"], "session_id": result["session_id"]}
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
 
 
 @app.post("/auth/logout")
-def logout(response: Response, session_id: Optional[str] = Cookie(None)):
+def logout(response: Response, session_id: Optional[str] = Depends(get_session_id)):
     if session_id:
         logout_user(session_id)
     response.delete_cookie("session_id")
@@ -116,7 +124,7 @@ def logout(response: Response, session_id: Optional[str] = Cookie(None)):
 
 
 @app.get("/auth/me")
-def me(session_id: Optional[str] = Cookie(None)):
+def me(session_id: Optional[str] = Depends(get_session_id)):
     if not session_id:
         raise HTTPException(status_code=401, detail="Not logged in")
     user = get_current_user(session_id)
