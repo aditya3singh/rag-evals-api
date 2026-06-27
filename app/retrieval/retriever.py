@@ -1,7 +1,7 @@
-import numpy as np
 import psycopg2
 import os
-from sentence_transformers import SentenceTransformer
+# pyrefly: ignore [missing-import]
+from fastembed import TextEmbedding
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,12 +10,12 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 MODEL_NAME = "BAAI/bge-small-en-v1.5"
 SIMILARITY_THRESHOLD = 0.1
 
-model = SentenceTransformer(MODEL_NAME)
+model = TextEmbedding(MODEL_NAME)
 
 
 def retrieve(query: str, top_k: int = 7):
-    query_embedding = model.encode([query], convert_to_numpy=True)[0]
-    embedding_list = query_embedding.tolist()
+    embeddings = list(model.embed([query]))
+    embedding_list = embeddings[0].tolist()
 
     conn = psycopg2.connect(DATABASE_URL)
     cur = conn.cursor()

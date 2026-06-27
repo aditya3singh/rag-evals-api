@@ -3,8 +3,7 @@ uvicorn[standard]
 pydantic
 python-dotenv
 psycopg2-binary
-torch --index-url https://download.pytorch.org/whl/cpu
-sentence-transformers
+fastembed
 groq
 redis
 cachetools
