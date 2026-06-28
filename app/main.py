@@ -108,7 +108,9 @@ def login(req: AuthRequest, response: Response):
             key="session_id",
             value=result["session_id"],
             httponly=True,
-            max_age=86400
+            max_age=86400,
+            samesite="none",
+            secure=True
         )
         return {"message": "Login successful", "email": result["email"], "session_id": result["session_id"]}
     except ValueError as e:
@@ -135,8 +137,7 @@ def me(session_id: Optional[str] = Depends(get_session_id)):
 
 # ── Conversation endpoints ────────────────────────────────
 @app.post("/conversations")
-def create_conversation(session_id: Optional[str] = Cookie(None)):
-    user = require_user(session_id)
+def create_conversation(user: dict = Depends(require_user)):
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -153,8 +154,7 @@ def create_conversation(session_id: Optional[str] = Cookie(None)):
 
 
 @app.get("/conversations")
-def list_conversations(session_id: Optional[str] = Cookie(None)):
-    user = require_user(session_id)
+def list_conversations(user: dict = Depends(require_user)):
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -170,8 +170,7 @@ def list_conversations(session_id: Optional[str] = Cookie(None)):
 
 
 @app.get("/conversations/{conversation_id}/messages")
-def get_messages(conversation_id: int, session_id: Optional[str] = Cookie(None)):
-    user = require_user(session_id)
+def get_messages(conversation_id: int, user: dict = Depends(require_user)):
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -201,7 +200,7 @@ def retrieve_chunks(request: QueryRequest):
 
 
 @app.post("/ask")
-def ask(request: QueryRequest, session_id: Optional[str] = Cookie(None)):
+def ask(request: QueryRequest):
     cached = get_cached(request.query, request.top_k)
     if cached:
         cached["cache_hit"] = True
@@ -273,8 +272,7 @@ def ask(request: QueryRequest, session_id: Optional[str] = Cookie(None)):
 
 # ── Export endpoint ───────────────────────────────────────
 @app.get("/conversations/{conversation_id}/export")
-def export_conversation(conversation_id: int, session_id: Optional[str] = Cookie(None)):
-    user = require_user(session_id)
+def export_conversation(conversation_id: int, user: dict = Depends(require_user)):
     conn = get_db()
     try:
         cur = conn.cursor()

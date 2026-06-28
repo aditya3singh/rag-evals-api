@@ -959,6 +959,14 @@
     let currentUser = null;
     let currentConvId = null;
     let conversations = [];
+    let sessionToken = null;
+
+    // ── Auth header helper ──────────────────────────────
+    function authHeaders(extra = {}) {
+      const headers = { ...extra };
+      if (sessionToken) headers['Authorization'] = 'Bearer ' + sessionToken;
+      return headers;
+    }
 
     // ── Helpers ─────────────────────────────────────────
     function autoResize(el) {
@@ -997,10 +1005,11 @@
       const password = document.getElementById('login-password').value;
       if (!email || !password) { setAuthMsg('Please fill in all fields.'); return; }
       document.getElementById('login-btn').textContent = 'Logging in…';
-      const res = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+      const res = await fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ email, password }) });
       const data = await res.json();
       document.getElementById('login-btn').textContent = 'Login';
       if (!res.ok) { setAuthMsg(data.detail || 'Login failed.'); return; }
+      sessionToken = data.session_id;
       currentUser = { email: data.email };
       showApp();
     }
@@ -1023,8 +1032,8 @@
     }
 
     async function doLogout() {
-      await fetch('/auth/logout', { method: 'POST' });
-      currentUser = null; currentConvId = null;
+      await fetch('/auth/logout', { method: 'POST', headers: authHeaders(), credentials: 'include' });
+      currentUser = null; currentConvId = null; sessionToken = null;
       document.getElementById('app-screen').style.display = 'none';
       document.getElementById('auth-screen').style.display = 'flex';
     }
@@ -1041,7 +1050,7 @@
     }
 
     async function loadConversations() {
-      const res = await fetch('/conversations');
+      const res = await fetch('/conversations', { headers: authHeaders(), credentials: 'include' });
       if (!res.ok) return;
       conversations = await res.json();
       renderConvList();
@@ -1058,8 +1067,16 @@
     }
 
     async function newConversation() {
-      const res = await fetch('/conversations', { method: 'POST' });
+      const res = await fetch('/conversations', { method: 'POST', headers: authHeaders(), credentials: 'include' });
+      if (!res.ok) {
+        console.error('Failed to create conversation');
+        return;
+      }
       const conv = await res.json();
+      if (!conv.id) {
+        console.error('Conversation creation returned no id');
+        return;
+      }
       conversations.unshift(conv);
       selectConversation(conv.id, conv.title);
       renderConvList();
@@ -1070,7 +1087,11 @@
       document.getElementById('chat-title').textContent = title || 'New conversation';
       renderConvList();
 
-      const res = await fetch(`/conversations/${id}/messages`);
+      const res = await fetch(`/conversations/${id}/messages`, { headers: authHeaders(), credentials: 'include' });
+      if (!res.ok) {
+        showEmptyState();
+        return;
+      }
       const messages = await res.json();
       const inner = document.getElementById('messages-inner');
 
@@ -1184,7 +1205,8 @@
       try {
         const res = await fetch('/ask', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          credentials: 'include',
           body: JSON.stringify({ query, top_k: 5, conversation_id: currentConvId })
         });
         const data = await res.json();
@@ -1211,7 +1233,7 @@
 
     // ── Auto-login check ─────────────────────────────────
     (async () => {
-      const res = await fetch('/auth/me');
+      const res = await fetch('/auth/me', { headers: authHeaders(), credentials: 'include' });
       if (res.ok) {
         currentUser = await res.json();
         showApp();
