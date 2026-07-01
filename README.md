@@ -1,3 +1,13 @@
+---
+title: RAG Evals API
+emoji: 🧠
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # RAG Evals API
 
 A production-style RAG (Retrieval-Augmented Generation) API built over FastAPI documentation, with a built-in eval harness to measure retrieval accuracy — not just "does it work," but "how well, and how do I know."
