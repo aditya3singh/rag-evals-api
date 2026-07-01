@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant").strip()
 client = Groq(api_key=GROQ_API_KEY)
 
 SYSTEM_PROMPT = """You are a helpful assistant that answers questions about FastAPI documentation.

@@ -219,7 +219,18 @@ def ask(request: QueryRequest):
             "cache_hit": False
         }
 
-    result = generate(request.query, chunks)
+    try:
+        result = generate(request.query, chunks)
+    except Exception as e:
+        print(f"Generation error: {e}")
+        return JSONResponse(status_code=500, content={
+            "query": request.query,
+            "answer": "Sorry, the AI model is temporarily unavailable. Please try again later.",
+            "citations": [], "all_sources": [],
+            "retrieval_status": "generation_error",
+            "latency_ms": round((time.time() - start) * 1000),
+            "cache_hit": False
+        })
 
     if "NOT_IN_CONTEXT" in result["answer"]:
         return {
